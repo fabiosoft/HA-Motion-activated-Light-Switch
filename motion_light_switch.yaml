@@ -1,0 +1,67 @@
+blueprint:
+  name: Motion-activated Light Switch
+  description: Turn on a switch when motion is detected.
+  domain: automation
+  source_url: https://github.com/fabiosoft/HA-Motion-activated-Light-Switch/
+  input:
+    motion_entity:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    light_target:
+      name: Light Switch
+      selector:
+        target:
+          entity:
+            domain: switch
+    no_motion_wait:
+      name: Wait time
+      description: Time to leave the light on after last motion is detected.
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+    start_time:
+      name: Start Time
+      description: Time action should start
+      default: "17:00:00"
+      selector:
+        time:
+    end_time:
+      name: End Time
+      default: "00:00:00"
+      description: Time action should stop
+      selector:
+        time:
+
+# If motion is detected within the delay,
+# we restart the script.
+mode: restart
+max_exceeded: silent
+
+trigger:
+  platform: state
+  entity_id: !input motion_entity
+  from: "off"
+  to: "on"
+condition:
+  alias: "Time 17~00"
+  condition: time
+  # At least one of the following is required.
+  after: !input start_time
+  before: !input end_time
+action:
+  - service: switch.turn_on
+    target: !input light_target
+  - wait_for_trigger:
+      platform: state
+      entity_id: !input motion_entity
+      from: "on"
+      to: "off"
+  - delay: !input no_motion_wait
+  - service: switch.turn_off
+    target: !input light_target
